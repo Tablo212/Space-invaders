@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>3D Space Invaders - Nightmare Boss Edition (v5)</title>
+  <title>3D Space Invaders - Difficulty Edition</title>
   <style>
     * { box-sizing: border-box; user-select: none; }
     body {
@@ -14,6 +14,99 @@
       color: #fff;
     }
     canvas { display: block; }
+
+    /* Main Menu Overlay */
+    #main-menu {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center, rgba(15, 23, 42, 0.85) 0%, rgba(3, 3, 8, 0.96) 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 30;
+      backdrop-filter: blur(6px);
+      padding: 20px;
+    }
+    .menu-title {
+      font-size: 46px;
+      font-weight: 900;
+      letter-spacing: 3px;
+      color: #00f0ff;
+      text-shadow: 0 0 24px rgba(0, 240, 255, 0.65);
+      margin: 0 0 8px 0;
+      text-align: center;
+    }
+    .menu-subtitle {
+      font-size: 16px;
+      color: #94a3b8;
+      margin-bottom: 32px;
+      letter-spacing: 1px;
+      text-align: center;
+    }
+    .diff-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      max-width: 760px;
+      width: 100%;
+    }
+    .diff-card {
+      background: rgba(15, 23, 42, 0.9);
+      border: 2px solid #2a3555;
+      border-radius: 12px;
+      padding: 18px 20px;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      color: #fff;
+    }
+    .diff-card:hover {
+      transform: translateY(-4px);
+    }
+    .diff-card.cadet:hover { border-color: #4ade80; box-shadow: 0 0 22px rgba(74, 222, 128, 0.35); }
+    .diff-card.veteran:hover { border-color: #38bdf8; box-shadow: 0 0 22px rgba(56, 189, 248, 0.35); }
+    .diff-card.commander:hover { border-color: #f59e0b; box-shadow: 0 0 22px rgba(245, 158, 11, 0.35); }
+    .diff-card.nightmare:hover { border-color: #ff2a55; box-shadow: 0 0 22px rgba(255, 42, 85, 0.45); }
+
+    .diff-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .diff-name {
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 1px;
+    }
+    .cadet .diff-name { color: #4ade80; }
+    .veteran .diff-name { color: #38bdf8; }
+    .commander .diff-name { color: #f59e0b; }
+    .nightmare .diff-name { color: #ff2a55; }
+
+    .diff-tag {
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #cbd5e1;
+      text-transform: uppercase;
+    }
+    .diff-desc {
+      font-size: 13px;
+      color: #cbd5e1;
+      line-height: 1.45;
+      margin-bottom: 10px;
+    }
+    .diff-stats {
+      font-size: 12px;
+      color: #94a3b8;
+      font-weight: 700;
+      border-top: 1px solid #1e293b;
+      padding-top: 8px;
+    }
 
     /* Top Left Player HUD */
     #hud-left {
@@ -26,6 +119,7 @@
       padding: 12px 16px;
       min-width: 240px;
       backdrop-filter: blur(4px);
+      display: none;
     }
     .stat-row {
       font-size: 15px;
@@ -63,6 +157,7 @@
       transform: translateX(-50%);
       text-align: center;
       pointer-events: none;
+      display: none;
     }
     #wave-title {
       font-size: 22px;
@@ -90,6 +185,7 @@
       text-align: right;
       font-size: 15px;
       font-weight: 700;
+      display: none;
     }
     #hud-right div { margin-bottom: 5px; }
     #hud-right span { color: #00f0ff; }
@@ -234,9 +330,53 @@
 </head>
 <body>
 
+  <!-- Main Menu Difficulty Selector -->
+  <div id="main-menu">
+    <h1 class="menu-title">3D SPACE INVADERS</h1>
+    <div class="menu-subtitle">SELECT YOUR COMBAT DIFFICULTY TO LAUNCH</div>
+
+    <div class="diff-grid">
+      <button class="diff-card cadet" onclick="startGameWithDifficulty('cadet')">
+        <div class="diff-header">
+          <span class="diff-name">CADET</span>
+          <span class="diff-tag">Relaxed</span>
+        </div>
+        <div class="diff-desc">Generous wave timers, lighter enemy armor, and affordable shop upgrades.</div>
+        <div class="diff-stats">65s Timer | 130 HP | Max 5 Enemy Bolts</div>
+      </button>
+
+      <button class="diff-card veteran" onclick="startGameWithDifficulty('veteran')">
+        <div class="diff-header">
+          <span class="diff-name">VETERAN</span>
+          <span class="diff-tag">Balanced</span>
+        </div>
+        <div class="diff-desc">Fair wave timers, standard enemy scaling, and steady crystal drops.</div>
+        <div class="diff-stats">50s Timer | 100 HP | Max 8 Enemy Bolts</div>
+      </button>
+
+      <button class="diff-card commander" onclick="startGameWithDifficulty('commander')">
+        <div class="diff-header">
+          <span class="diff-name">COMMANDER</span>
+          <span class="diff-tag">Hard</span>
+        </div>
+        <div class="diff-desc">Armored fleets, faster enemy descent, and expensive weapon upgrades.</div>
+        <div class="diff-stats">40s Timer | 90 HP | Max 11 Enemy Bolts</div>
+      </button>
+
+      <button class="diff-card nightmare" onclick="startGameWithDifficulty('nightmare')">
+        <div class="diff-header">
+          <span class="diff-name">NIGHTMARE</span>
+          <span class="diff-tag">Brutal</span>
+        </div>
+        <div class="diff-desc">Tight wave clocks, heavy boss armor, and steep shop inflation.</div>
+        <div class="diff-stats">32s Timer | 85 HP | Max 14 Enemy Bolts</div>
+      </button>
+    </div>
+  </div>
+
   <!-- HUD Elements -->
   <div id="hud-left">
-    <div class="stat-row" id="hp-text">HP: 85/85 | Armor: 0</div>
+    <div class="stat-row" id="hp-text">HP: 100/100 | Armor: 0</div>
     <div class="bar-bg"><div id="hp-bar"></div></div>
     <div class="stat-row" id="xp-text">LEVEL 1 (0/25 XP)</div>
     <div class="bar-bg"><div id="xp-bar"></div></div>
@@ -244,8 +384,8 @@
   </div>
 
   <div id="hud-center">
-    <div id="wave-title">NIGHTMARE WAVE 1</div>
-    <div id="wave-timer">25</div>
+    <div id="wave-title">WAVE 1</div>
+    <div id="wave-timer">50</div>
   </div>
 
   <div id="hud-right">
@@ -285,7 +425,7 @@
     <div class="modal-box">
       <h1 style="color: #ff2a55;">YOU GOT OBLITERATED!</h1>
       <div class="modal-sub" id="gameover-stats">Survived to Wave 1 | Total Kills: 0</div>
-      <button class="action-btn" onclick="location.reload()">TRY AGAIN</button>
+      <button class="action-btn" onclick="location.reload()">MAIN MENU</button>
     </div>
   </div>
 
@@ -295,8 +435,79 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
     // ==========================================
-    // 1. ALL-IN-ONE CONFIG (BALANCED PROJECTILES)
+    // 1. DIFFICULTY PRESETS & ARENA CONFIG
     // ==========================================
+    const DIFFICULTIES = {
+      cadet: {
+        label: 'CADET',
+        color: '#4ade80',
+        startHp: 130,
+        startDamage: 18,
+        baseTime: 65,
+        timePerWave: 6,
+        enemyBaseHp: 15,
+        hpGrowth: 1.24,
+        enemySpeed: 2.3,
+        dropStep: 1.0,
+        fireChance: 0.04,
+        maxBullets: 5,
+        bulletSpeed: 11.5,
+        enemyDamage: 8,
+        shopCostMult: 0.75
+      },
+      veteran: {
+        label: 'VETERAN',
+        color: '#38bdf8',
+        startHp: 100,
+        startDamage: 15,
+        baseTime: 50,
+        timePerWave: 5,
+        enemyBaseHp: 19,
+        hpGrowth: 1.30,
+        enemySpeed: 2.7,
+        dropStep: 1.2,
+        fireChance: 0.06,
+        maxBullets: 8,
+        bulletSpeed: 13.0,
+        enemyDamage: 11,
+        shopCostMult: 1.0
+      },
+      commander: {
+        label: 'COMMANDER',
+        color: '#f59e0b',
+        startHp: 90,
+        startDamage: 14,
+        baseTime: 40,
+        timePerWave: 4,
+        enemyBaseHp: 22,
+        hpGrowth: 1.35,
+        enemySpeed: 3.1,
+        dropStep: 1.4,
+        fireChance: 0.085,
+        maxBullets: 11,
+        bulletSpeed: 14.5,
+        enemyDamage: 13,
+        shopCostMult: 1.25
+      },
+      nightmare: {
+        label: 'NIGHTMARE',
+        color: '#ff2a55',
+        startHp: 85,
+        startDamage: 14,
+        baseTime: 32,
+        timePerWave: 3,
+        enemyBaseHp: 24,
+        hpGrowth: 1.40,
+        enemySpeed: 3.4,
+        dropStep: 1.55,
+        fireChance: 0.11,
+        maxBullets: 14,
+        bulletSpeed: 15.5,
+        enemyDamage: 15,
+        shopCostMult: 1.5
+      }
+    };
+
     const CONFIG = {
       map: {
         width: 34,
@@ -309,29 +520,18 @@
         starCount: 700
       },
       player: {
-        startHp: 85,
-        startArmor: 0,
-        moveSpeed: 24,
-        damage: 14,
-        fireCooldown: 0.36,
+        moveSpeed: 25,
+        fireCooldown: 0.34,
         weapons: 1,
         maxWeapons: 6,
-        pickupRange: 5.5
+        pickupRange: 6.5
       },
-      enemies: {
-        baseHp: 22,
-        hpGrowthPerWave: 1.38,
-        baseSpeed: 3.4,
-        speedGrowthPerWave: 0.28,
-        // Controlled enemy firing so the screen doesn't flood with bullets
-        fireChancePerSec: 0.065,
-        maxActiveBullets: 9,
-        bulletSpeed: 13.5,
-        baseDamage: 14,
-        bossWaveInterval: 3,
-        bossHpMultiplier: 16
-      }
+      bossWaveInterval: 3,
+      bossHpMultiplier: 14
     };
+
+    let activeDiff = DIFFICULTIES.veteran;
+    let gameStarted = false;
 
     // ==========================================
     // 2. THREE.JS SCENE & 3D ARENA MAP SETUP
@@ -348,19 +548,16 @@
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     document.body.appendChild(renderer.domElement);
 
-    // Lighting
     scene.add(new THREE.AmbientLight(0xffffff, 0.55));
     const dirLight = new THREE.DirectionalLight(0xaaccff, 1.1);
     dirLight.position.set(12, 28, 18);
     scene.add(dirLight);
 
-    // Build 3D Arena Map
     const mapGroup = new THREE.Group();
     const gridHelper = new THREE.GridHelper(CONFIG.map.depth, 24, CONFIG.map.railColor, CONFIG.map.gridColor);
     gridHelper.position.y = -0.6;
     mapGroup.add(gridHelper);
 
-    // Glowing Side Rails
     const railGeo = new THREE.BoxGeometry(0.3, 0.3, CONFIG.map.depth);
     const railMat = new THREE.MeshBasicMaterial({ color: CONFIG.map.railColor });
     const leftRail = new THREE.Mesh(railGeo, railMat);
@@ -369,14 +566,12 @@
     rightRail.position.set(CONFIG.map.width / 2, -0.4, 0);
     mapGroup.add(leftRail, rightRail);
 
-    // Red Defense Breach Line
     const lineGeo = new THREE.BoxGeometry(CONFIG.map.width, 0.15, 0.25);
     const lineMat = new THREE.MeshBasicMaterial({ color: CONFIG.map.defenseLineColor });
     const defenseLine = new THREE.Mesh(lineGeo, lineMat);
     defenseLine.position.set(0, -0.45, CONFIG.map.playerZ - 1.5);
     mapGroup.add(defenseLine);
 
-    // 3D Starfield
     const starGeo = new THREE.BufferGeometry();
     const starPos = new Float32Array(CONFIG.map.starCount * 3);
     for (let i = 0; i < CONFIG.map.starCount * 3; i += 3) {
@@ -409,31 +604,31 @@
 
     let state = {
       wave: 1,
-      waveTime: 25,
-      hp: CONFIG.player.startHp,
-      maxHp: CONFIG.player.startHp,
-      armor: CONFIG.player.startArmor,
+      waveTime: 50,
+      hp: 100,
+      maxHp: 100,
+      armor: 0,
       xp: 0,
       xpNext: 25,
       level: 1,
       materials: 0,
       kills: 0,
-      damage: CONFIG.player.damage,
+      damage: 15,
       fireCooldown: CONFIG.player.fireCooldown,
       weapons: CONFIG.player.weapons,
       speed: CONFIG.player.moveSpeed,
       fireTimer: 0,
-      paused: false,
+      paused: true,
       gameOver: false,
       enemyDir: 1
     };
 
-    const shopCosts = {
-      weapon: 65,
-      damage: 40,
-      fireRate: 45,
-      armor: 50,
-      heal: 30
+    let shopCosts = {
+      weapon: 60,
+      damage: 38,
+      fireRate: 42,
+      armor: 45,
+      heal: 25
     };
 
     let enemies = [];
@@ -453,7 +648,46 @@
     });
 
     // ==========================================
-    // 4. ENEMY & MINI-BOSS SPAWNING
+    // 4. START GAME FROM MAIN MENU
+    // ==========================================
+    function startGameWithDifficulty(diffKey) {
+      activeDiff = DIFFICULTIES[diffKey] || DIFFICULTIES.veteran;
+      gameStarted = true;
+
+      state.wave = 1;
+      state.hp = activeDiff.startHp;
+      state.maxHp = activeDiff.startHp;
+      state.damage = activeDiff.startDamage;
+      state.armor = 0;
+      state.xp = 0;
+      state.xpNext = 25;
+      state.level = 1;
+      state.materials = 0;
+      state.kills = 0;
+      state.weapons = 1;
+      state.fireCooldown = CONFIG.player.fireCooldown;
+      state.paused = false;
+      state.gameOver = false;
+
+      shopCosts = {
+        weapon: Math.round(60 * activeDiff.shopCostMult),
+        damage: Math.round(38 * activeDiff.shopCostMult),
+        fireRate: Math.round(42 * activeDiff.shopCostMult),
+        armor: Math.round(45 * activeDiff.shopCostMult),
+        heal: Math.round(25 * activeDiff.shopCostMult)
+      };
+
+      document.getElementById('main-menu').style.display = 'none';
+      document.getElementById('hud-left').style.display = 'block';
+      document.getElementById('hud-center').style.display = 'block';
+      document.getElementById('hud-right').style.display = 'block';
+      document.getElementById('wave-title').style.color = activeDiff.color;
+
+      spawnWave(1);
+    }
+
+    // ==========================================
+    // 5. ENEMY & MINI-BOSS SPAWNING
     // ==========================================
     function spawnWave(waveNum) {
       enemies.forEach(e => scene.remove(e.mesh));
@@ -465,12 +699,13 @@
       activeBoss = null;
       document.getElementById('boss-hud').style.display = 'none';
 
-      state.waveTime = 25 + Math.min(20, waveNum * 2);
+      const isBossWave = waveNum % CONFIG.bossWaveInterval === 0;
+      state.waveTime = activeDiff.baseTime + Math.min(35, (waveNum - 1) * activeDiff.timePerWave) + (isBossWave ? 25 : 0);
       state.enemyDir = 1;
 
       const rows = Math.min(5, 3 + Math.floor(waveNum / 2));
       const cols = Math.min(9, 6 + Math.floor(waveNum / 2));
-      const hpScale = Math.floor(CONFIG.enemies.baseHp * Math.pow(CONFIG.enemies.hpGrowthPerWave, waveNum - 1));
+      const hpScale = Math.floor(activeDiff.enemyBaseHp * Math.pow(activeDiff.hpGrowth, waveNum - 1));
 
       const spacingX = 3.1;
       const spacingZ = 2.8;
@@ -479,7 +714,7 @@
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
           const isHeavy = r === 0 && waveNum >= 2;
-          const maxHp = isHeavy ? Math.floor(hpScale * 2.2) : hpScale;
+          const maxHp = isHeavy ? Math.floor(hpScale * 2.1) : hpScale;
           const color = isHeavy ? 0xa855f7 : (r === 1 ? 0xf97316 : 0xff2a55);
 
           const mesh = new THREE.Mesh(
@@ -494,19 +729,18 @@
             hp: maxHp,
             maxHp,
             isBoss: false,
-            matDrop: isHeavy ? 6 : 3,
+            matDrop: isHeavy ? 7 : 4,
             xpDrop: isHeavy ? 10 : 5
           });
         }
       }
 
-      // Spawn Mini-Boss every 3rd wave
-      if (waveNum % CONFIG.enemies.bossWaveInterval === 0) {
+      if (isBossWave) {
         const banner = document.getElementById('warning-banner');
         banner.style.display = 'block';
         setTimeout(() => banner.style.display = 'none', 2500);
 
-        const bossHp = hpScale * CONFIG.enemies.bossHpMultiplier;
+        const bossHp = hpScale * CONFIG.bossHpMultiplier;
         const bossMesh = new THREE.Mesh(
           new THREE.DodecahedronGeometry(2.4, 0),
           new THREE.MeshStandardMaterial({ color: 0xd946ef, emissive: 0x701a75, roughness: 0.2 })
@@ -519,8 +753,8 @@
           hp: bossHp,
           maxHp: bossHp,
           isBoss: true,
-          matDrop: 45,
-          xpDrop: 50
+          matDrop: 50,
+          xpDrop: 55
         };
         enemies.push(activeBoss);
         document.getElementById('boss-hud').style.display = 'block';
@@ -531,7 +765,7 @@
     }
 
     // ==========================================
-    // 5. COMBAT, DROPS & EXPLOSIONS
+    // 6. COMBAT, DROPS & EXPLOSIONS
     // ==========================================
     function firePlayerLasers() {
       const spread = 0.65;
@@ -594,7 +828,7 @@
     }
 
     // ==========================================
-    // 6. LEVEL-UP & EXPENSIVE SHOP MODALS
+    // 7. LEVEL-UP & SHOP MODALS
     // ==========================================
     function openLevelUpModal() {
       state.paused = true;
@@ -603,9 +837,9 @@
       container.innerHTML = '';
 
       const choices = [
-        { title: '+6 Max HP & Heal', desc: 'Reinforce ship hull integrity', apply: () => { state.maxHp += 6; state.hp = Math.min(state.maxHp, state.hp + 12); } },
+        { title: '+8 Max HP & Heal', desc: 'Reinforce ship hull integrity', apply: () => { state.maxHp += 8; state.hp = Math.min(state.maxHp, state.hp + 15); } },
         { title: '+3 Laser Damage', desc: 'Higher plasma bolt output', apply: () => { state.damage += 3; } },
-        { title: '+7% Fire Rate', desc: 'Faster weapon cycling', apply: () => { state.fireCooldown = Math.max(0.08, state.fireCooldown * 0.93); } },
+        { title: '+8% Fire Rate', desc: 'Faster weapon cycling', apply: () => { state.fireCooldown = Math.max(0.08, state.fireCooldown * 0.92); } },
         { title: '+1 Armor Plating', desc: 'Reduce incoming hit damage', apply: () => { state.armor += 1; } }
       ];
 
@@ -647,7 +881,7 @@
           buy: () => {
             state.materials -= shopCosts.weapon;
             state.weapons++;
-            shopCosts.weapon = Math.floor(shopCosts.weapon * 2.15);
+            shopCosts.weapon = Math.floor(shopCosts.weapon * 2.05);
           }
         },
         {
@@ -658,7 +892,7 @@
           buy: () => {
             state.materials -= shopCosts.damage;
             state.damage += 6;
-            shopCosts.damage = Math.floor(shopCosts.damage * 1.65);
+            shopCosts.damage = Math.floor(shopCosts.damage * 1.6);
           }
         },
         {
@@ -669,7 +903,7 @@
           buy: () => {
             state.materials -= shopCosts.fireRate;
             state.fireCooldown = Math.max(0.08, state.fireCooldown * 0.88);
-            shopCosts.fireRate = Math.floor(shopCosts.fireRate * 1.75);
+            shopCosts.fireRate = Math.floor(shopCosts.fireRate * 1.7);
           }
         },
         {
@@ -680,18 +914,18 @@
           buy: () => {
             state.materials -= shopCosts.armor;
             state.armor += 2;
-            shopCosts.armor = Math.floor(shopCosts.armor * 1.8);
+            shopCosts.armor = Math.floor(shopCosts.armor * 1.75);
           }
         },
         {
-          title: 'Hull Nanobots (+30 HP)',
+          title: 'Hull Nanobots (+35 HP)',
           desc: 'Repair damaged ship armor',
           cost: shopCosts.heal,
           disabled: state.materials < shopCosts.heal || state.hp >= state.maxHp,
           buy: () => {
             state.materials -= shopCosts.heal;
-            state.hp = Math.min(state.maxHp, state.hp + 30);
-            shopCosts.heal = Math.floor(shopCosts.heal * 1.4);
+            state.hp = Math.min(state.maxHp, state.hp + 35);
+            shopCosts.heal = Math.floor(shopCosts.heal * 1.35);
           }
         }
       ];
@@ -723,7 +957,7 @@
 
     function triggerGameOver() {
       state.gameOver = true;
-      document.getElementById('gameover-stats').textContent = `Survived to Wave ${state.wave} | Total Kills: ${state.kills}`;
+      document.getElementById('gameover-stats').textContent = `[${activeDiff.label}] Survived to Wave ${state.wave} | Total Kills: ${state.kills}`;
       document.getElementById('gameover-modal').style.display = 'flex';
     }
 
@@ -733,8 +967,8 @@
       document.getElementById('xp-text').textContent = `LEVEL ${state.level} (${state.xp}/${state.xpNext} XP)`;
       document.getElementById('xp-bar').style.width = `${(state.xp / state.xpNext) * 100}%`;
       document.getElementById('mat-text').textContent = `Materials: ${state.materials}`;
-      document.getElementById('wave-title').textContent = `NIGHTMARE WAVE ${state.wave}`;
-      document.getElementById('wave-timer').textContent = Math.ceil(state.waveTime);
+      document.getElementById('wave-title').textContent = `${activeDiff.label} WAVE ${state.wave}`;
+      document.getElementById('wave-timer').textContent = Math.max(0, Math.ceil(state.waveTime));
       document.getElementById('weapons-text').textContent = `${state.weapons}/${CONFIG.player.maxWeapons}`;
       document.getElementById('alive-text').textContent = enemies.length;
       document.getElementById('kills-text').textContent = state.kills;
@@ -745,7 +979,7 @@
     }
 
     // ==========================================
-    // 7. MAIN 60FPS GAME LOOP
+    // 8. MAIN 60FPS GAME LOOP
     // ==========================================
     let lastTime = performance.now();
 
@@ -756,7 +990,7 @@
 
       starField.rotation.y += dt * 0.02;
 
-      if (state.paused || state.gameOver) {
+      if (!gameStarted || state.paused || state.gameOver) {
         renderer.render(scene, camera);
         return;
       }
@@ -789,14 +1023,13 @@
       // Update Player Bullets
       for (let i = playerBullets.length - 1; i >= 0; i--) {
         const b = playerBullets[i];
-        b.mesh.position.z -= 42 * dt;
+        b.mesh.position.z -= 44 * dt;
         if (b.mesh.position.z < -CONFIG.map.depth / 2 - 4) {
           scene.remove(b.mesh);
           playerBullets.splice(i, 1);
           continue;
         }
 
-        // Check Enemy Hit
         for (let j = enemies.length - 1; j >= 0; j--) {
           const e = enemies[j];
           const hitRadius = e.isBoss ? 2.5 : 1.15;
@@ -822,20 +1055,19 @@
         }
       }
 
-      // Update Enemies & Controlled Return Fire
-      const enemySpeed = CONFIG.enemies.baseSpeed + (state.wave * CONFIG.enemies.speedGrowthPerWave);
+      // Update Enemies
+      const currentSpeed = activeDiff.enemySpeed + (state.wave * 0.2);
       let hitWall = false;
-      const bulletCap = CONFIG.enemies.maxActiveBullets + Math.floor(state.wave * 1.2);
 
       enemies.forEach(e => {
-        e.mesh.position.x += state.enemyDir * enemySpeed * dt;
+        e.mesh.position.x += state.enemyDir * currentSpeed * dt;
         e.mesh.rotation.y += dt * 1.5;
 
         if (Math.abs(e.mesh.position.x) > halfBound) hitWall = true;
 
-        // Only fire if under the active projectile cap
-        const fireRate = (CONFIG.enemies.fireChancePerSec + state.wave * 0.008) * (e.isBoss ? 4.5 : 1);
-        if (enemyBullets.length < bulletCap && Math.random() < fireRate * dt) {
+        // Capped Enemy Return Fire
+        const fireRate = (activeDiff.fireChance + state.wave * 0.01) * (e.isBoss ? 2.2 : 1);
+        if (enemyBullets.length < activeDiff.maxBullets && Math.random() < fireRate * dt) {
           const ebMesh = new THREE.Mesh(
             new THREE.SphereGeometry(e.isBoss ? 0.45 : 0.28, 8, 8),
             new THREE.MeshBasicMaterial({ color: e.isBoss ? 0xd946ef : 0xff3b5c })
@@ -844,8 +1076,8 @@
           scene.add(ebMesh);
           enemyBullets.push({
             mesh: ebMesh,
-            dmg: CONFIG.enemies.baseDamage + state.wave * 3,
-            speed: CONFIG.enemies.bulletSpeed + state.wave * 0.55
+            dmg: activeDiff.enemyDamage + state.wave * 2,
+            speed: activeDiff.bulletSpeed + state.wave * 0.45
           });
         }
       });
@@ -853,7 +1085,7 @@
       if (hitWall) {
         state.enemyDir *= -1;
         enemies.forEach(e => {
-          e.mesh.position.z += 1.6;
+          e.mesh.position.z += activeDiff.dropStep;
           if (e.mesh.position.z >= CONFIG.map.playerZ - 1.5) {
             damagePlayer(999);
           }
@@ -882,7 +1114,7 @@
       for (let i = pickups.length - 1; i >= 0; i--) {
         const p = pickups[i];
         p.mesh.rotation.y += dt * 3;
-        p.mesh.position.z += 6 * dt;
+        p.mesh.position.z += 5.5 * dt;
 
         const dist = p.mesh.position.distanceTo(playerGroup.position);
         if (dist < CONFIG.player.pickupRange) {
@@ -917,7 +1149,6 @@
 
       updateHUD();
 
-      // Check Wave Cleared
       if (enemies.length === 0 && !state.gameOver) {
         openShopModal();
       }
@@ -925,8 +1156,6 @@
       renderer.render(scene, camera);
     }
 
-    // Launch Wave 1
-    spawnWave(1);
     requestAnimationFrame(animate);
   </script>
 </body>
