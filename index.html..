@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Space Invaders - Laser Armory Edition</title>
+  <style>
+    * { box-sizing: border-box; user-select: none; }
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #030308;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #fff;
+    }
+    canvas { display: block; }
+
+    /* Top Left Player HUD */
+    #hud-left {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: rgba(10, 12, 24, 0.85);
+      border: 1px solid #2a3555;
+      border-radius: 8px;
+      padding: 12px 16px;
+      min-width: 255px;
+      backdrop-filter: blur(4px);
+      display: none;
+    }
+    .stat-row {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 5px;
+      letter-spacing: 0.4px;
+    }
+    .bar-bg {
+      width: 100%;
+      height: 9px;
+      background: #1a1f33;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-bottom: 9px;
+    }
+    #hp-bar {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, #ff2a55, #ff5e7e);
+      transition: width 0.15s;
+    }
+    #xp-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+      transition: width 0.15s;
+    }
+    .currency-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      font-weight: 800;
+      margin-top: 4px;
+    }
+    .mat-text { color: #ffd700; }
+    .cred-text { color: #38bdf8; }
+
+    /* Top Center Wave Info */
+    #hud-center {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      pointer-events: none;
+      display: none;
+    }
+    #wave-title {
+      font-size: 20px;
+      font-weight: 900;
+      color: #ff3b5c;
+      text-shadow: 0 0 12px rgba(255, 59, 92, 0.7);
+      letter-spacing: 1.5px;
+    }
+    #wave-timer {
+      font-size: 32px;
+      font-weight: 900;
+      color: #fff;
+      margin-top: 2px;
+    }
+
+    /* Top Right Fleet & Active Laser Info */
+    #hud-right {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: rgba(10, 12, 24, 0.85);
+      border: 1px solid #2a3555;
+      border-radius: 8px;
+      padding: 12px 16px;
+      text-align: right;
+      font-size: 14px;
+      font-weight: 700;
+      display: none;
+    }
+    #hud-right div { margin-bottom: 5px; }
+    #hud-right span { color: #00f0ff; }
+    #active-laser-badge {
+      display: inline-block;
+      margin-top: 4px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: #172038;
+      border: 1px solid #38bdf8;
+      color: #38bdf8;
+      font-size: 12px;
+    }
+
+    /* Boss Health Bar */
+    #boss-hud {
+      position: absolute;
+      top: 95px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 480px;
+      display: none;
+      text-align: center;
+    }
+    #boss-name {
+      font-size: 16px;
+      font-weight: 900;
+      color: #d946ef;
+      text-shadow: 0 0 10px rgba(217, 70, 239, 0.8);
+      margin-bottom: 5px;
+      letter-spacing: 1px;
+    }
+    #boss-bar-bg {
+      width: 100%;
+      height: 14px;
+      background: #22092c;
+      border: 2px solid #d946ef;
+      border-radius: 7px;
+      overflow: hidden;
+    }
+    #boss-bar {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, #9333ea, #f43f5e);
+    }
+
+    /* Banner Notifications */
+    #warning-banner {
+      position: absolute;
+      top: 36%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 32px;
+      font-weight: 900;
+      color: #ff2a55;
+      text-shadow: 0 0 20px #ff0000;
+      letter-spacing: 2px;
+      display: none;
+      pointer-events: none;
+      text-align: center;
+      z-index: 15;
+    }
+
+    /* Modals */
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(4, 6, 14, 0.88);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      backdrop-filter: blur(5px);
+      padding: 16px;
+    }
+    .modal-box {
+      background: #0f1424;
+      border: 2px solid #334166;
+      border-radius: 12px;
+      padding: 24px 30px;
+      max-width: 780px;
+      width: 95%;
+      max-height: 92vh;
+      overflow-y: auto;
+      text-align: center;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.85);
+    }
+    .modal-box h1 {
+      margin: 0 0 6px 0;
+      font-size: 30px;
+      letter-spacing: 1px;
+    }
+    .modal-sub {
+      color: #94a3b8;
+      margin-bottom: 18px;
+      font-size: 15px;
+    }
+
+    /* Main Menu Difficulty Cards */
+    .diff-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 10px;
+    }
+    .diff-card {
+      background: #172038;
+      border: 2px solid #334166;
+      border-radius: 10px;
+      padding: 16px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s;
+      color: #fff;
+    }
+    .diff-card:hover {
+      transform: translateY(-3px);
+      border-color: #00f0ff;
+      background: #1e2a4a;
+    }
+    .diff-title { font-size: 19px; font-weight: 900; margin-bottom: 6px; }
+    .diff-stats { font-size: 13px; color: #cbd5e1; line-height: 1.5; }
+
+    /* Shop Tabs & Grids */
+    .shop-balances {
+      display: flex;
+      justify-content: center;
+      gap: 28px;
+      background: #161d33;
+      padding: 10px 18px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 16px;
+      font-weight: 800;
+    }
+    .section-label {
+      text-align: left;
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #94a3b8;
+      margin: 10px 0 8px 0;
+      border-bottom: 1px solid #26314d;
+      padding-bottom: 4px;
+    }
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .upgrade-card {
+      background: #172038;
+      border: 1px solid #3b4d7a;
+      border-radius: 8px;
+      padding: 12px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .upgrade-card:hover:not(:disabled) {
+      border-color: #00f0ff;
+      background: #1e2a4a;
+      transform: translateY(-2px);
+    }
+    .upgrade-card:disabled {
+      opacity: 0.42;
+      cursor: not-allowed;
+    }
+    .upgrade-card.equipped {
+      border: 2px solid #4ade80;
+      background: #132a24;
+    }
+    .card-title { font-size: 14px; font-weight: 800; color: #38bdf8; margin-bottom: 4px; }
+    .card-desc { font-size: 12px; color: #cbd5e1; margin-bottom: 8px; line-height: 1.35; }
+    .card-cost { font-size: 13px; font-weight: 800; color: #ffd700; }
+    .card-cost.cred { color: #38bdf8; }
+    .card-cost.owned { color: #4ade80; }
+
+    .action-btn {
+      background: linear-gradient(90deg, #ff2a55, #ff5e3a);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 17px;
+      font-weight: 900;
+      padding: 13px 34px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: transform 0.1s;
+    }
+    .action-btn:hover { transform: scale(1.04); }
+
+    #controls-hint {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #64748b;
+      font-size: 13px;
+      pointer-events: none;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Main Menu Difficulty Screen -->
+  <div id="menu-modal" class="modal-overlay" style="display: flex;">
+    <div class="modal-box" style="max-width: 660px;">
+      <h1 style="color: #00f0ff; font-size: 34px;">3D SPACE INVADERS</h1>
+      <div class="modal-sub">Earn <strong>Star Credits</strong> after every round to unlock custom lasers in the Armory.</div>
+      <div class="diff-grid">
+        <button class="diff-card" onclick="startGame('cadet')">
+          <div class="diff-title" style="color: #4ade80;">CADET</div>
+          <div class="diff-stats">&bull; 65s Wave Timer &amp; 130 HP<br>&bull; Max 5 Enemy Bullets<br>&bull; 25% Cheaper Upgrades<br>&bull; 1.0x Star Credits</div>
+        </button>
+        <button class="diff-card" onclick="startGame('veteran')">
+          <div class="diff-title" style="color: #38bdf8;">VETERAN</div>
+          <div class="diff-stats">&bull; 50s Wave Timer &amp; 105 HP<br>&bull; Max 8 Enemy Bullets<br>&bull; Standard Shop Prices<br>&bull; 1.25x Star Credits</div>
+        </button>
+        <button class="diff-card" onclick="startGame('commander')">
+          <div class="diff-title" style="color: #f59e0b;">COMMANDER</div>
+          <div class="diff-stats">&bull; 42s Wave Timer &amp; 90 HP<br>&bull; Max 11 Enemy Bullets<br>&bull; +25% Shop Prices<br>&bull; 1.5x Star Credits</div>
+        </button>
+        <button class="diff-card" onclick="startGame('nightmare')">
+          <div class="diff-title" style="color: #ff2a55;">NIGHTMARE</div>
+          <div class="diff-stats">&bull; 35s Wave Timer &amp; 85 HP<br>&bull; Max 14 Enemy Bullets<br>&bull; +50% Shop Prices<br>&bull; 2.0x Star Credits</div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HUD Elements -->
+  <div id="hud-left">
+    <div class="stat-row" id="hp-text">HP: 100/100 | Armor: 0</div>
+    <div class="bar-bg"><div id="hp-bar"></div></div>
+    <div class="stat-row" id="xp-text">LEVEL 1 (0/25 XP)</div>
+    <div class="bar-bg"><div id="xp-bar"></div></div>
+    <div class="currency-row">
+      <span class="mat-text" id="mat-text">Materials: 0</span>
+      <span class="cred-text" id="cred-text">Credits: 0 CR</span>
+    </div>
+  </div>
+
+  <div id="hud-center">
+    <div id="wave-title">VETERAN WAVE 1</div>
+    <div id="wave-timer">50</div>
+  </div>
+
+  <div id="hud-right">
+    <div>Barrels: <span id="weapons-text">1/6</span></div>
+    <div>Enemies Alive: <span id="alive-text">0</span></div>
+    <div>Total Kills: <span id="kills-text">0</span></div>
+    <div id="active-laser-badge">LASER: PULSE BLASTER</div>
+  </div>
+
+  <div id="boss-hud">
+    <div id="boss-name">OVERLORD DREADNOUGHT</div>
+    <div id="boss-bar-bg"><div id="boss-bar"></div></div>
+  </div>
+
+  <div id="warning-banner">MINI-BOSS INCOMING!</div>
+
+  <div id="levelup-modal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 580px;">
+      <h1 style="color: #38bdf8;">LEVEL UP!</h1>
+      <div class="modal-sub">Choose a minor stat boost:</div>
+      <div class="card-grid" style="grid-template-columns: 1fr 1fr;" id="levelup-options"></div>
+    </div>
+  </div>
+
+  <div id="shop-modal" class="modal-overlay">
+    <div class="modal-box">
+      <h1 style="color: #4ade80;">ROUND CLEARED!</h1>
+      <div class="modal-sub" id="round-reward-banner">+100 Star Credits Earned!</div>
+      <div class="shop-balances">
+        <span class="cred-text" id="shop-cred-text">Star Credits: 0 CR</span>
+        <span class="mat-text" id="shop-mat-text">Materials: 0</span>
+      </div>
+
+      <div class="section-label">Laser Armory (Buy &amp; Equip with Star Credits)</div>
+      <div class="card-grid" id="laser-shop-options"></div>
+
+      <div class="section-label">Ship Upgrades (Buy with Salvaged Materials)</div>
+      <div class="card-grid" id="stat-shop-options"></div>
+
+      <button class="action-btn" id="next-wave-btn">START WAVE 2</button>
+    </div>
+  </div>
+
+  <div id="gameover-modal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 520px;">
+      <h1 style="color: #ff2a55;">SHIP DESTROYED!</h1>
+      <div class="modal-sub" id="gameover-stats">Survived to Wave 1 | Total Kills: 0</div>
+      <button class="action-btn" onclick="returnToMenu()">MAIN MENU</button>
+    </div>
+  </div>
+
+  <div id="controls-hint">Move: A / D or Left / Right Arrows | Press 1-6 to Switch Unlocked Lasers | Auto-Fires</div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    // ==========================================
+    // 1. DIFFICULTY & LASER ARMORY DEFINITIONS
+    // ==========================================
+    const DIFFICULTIES = {
+      cadet: {
+        label: 'CADET',
+        startHp: 130,
+        waveTime: 65,
+        enemyHpMult: 0.85,
+        enemySpeed: 2.4,
+        fireRate: 0.045,
+        maxBullets: 5,
+        shopMult: 0.75,
+        creditMult: 1.0
+      },
+      veteran: {
+        label: 'VETERAN',
+        startHp: 105,
+        waveTime: 50,
+        enemyHpMult: 1.0,
+        enemySpeed: 2.8,
+        fireRate: 0.065,
+        maxBullets: 8,
+        shopMult: 1.0,
+        creditMult: 1.25
+      },
+      commander: {
+        label: 'COMMANDER',
+        startHp: 90,
+        waveTime: 42,
+        enemyHpMult: 1.2,
+        enemySpeed: 3.1,
+        fireRate: 0.085,
+        maxBullets: 11,
+        shopMult: 1.25,
+        creditMult: 1.5
+      },
+      nightmare: {
+        label: 'NIGHTMARE',
+        startHp: 85,
+        waveTime: 35,
+        enemyHpMult: 1.4,
+        enemySpeed: 3.4,
+        fireRate: 0.11,
+        maxBullets: 14,
+        shopMult: 1.5,
+        creditMult: 2.0
+      }
+    };
+
+    const LASERS = [
+      {
+        id: 'pulse',
+        name: 'Pulse Blaster',
+        color: 0x00f0ff,
+        hex: '#00f0ff',
+        cost: 0,
+        dmgMult: 1.0,
+        rateMult: 1.0,
+        desc: 'Standard rapid-fire cyan plasma bolts.'
+      },
+      {
+        id: 'scatter',
+        name: 'Scatter Flak',
+        color: 0x38bdf8,
+        hex: '#38bdf8',
+        cost: 150,
+        dmgMult: 0.65,
+        rateMult: 1.15,
+        desc: 'Fires a wide fan of 3 angled flak pellets per barrel.'
+      },
+      {
+        id: 'plasma',
+        name: 'Nova Plasma',
+        color: 0xf97316,
+        hex: '#f97316',
+        cost: 280,
+        dmgMult: 1.45,
+        rateMult: 1.35,
+        desc: 'Heavy solar orbs that explode for area splash damage.'
+      },
+      {
+        id: 'railgun',
+        name: 'Void Railgun',
+        color: 0xc084fc,
+        hex: '#c084fc',
+        cost: 420,
+        dmgMult: 1.6,
+        rateMult: 1.45,
+        desc: 'High-velocity beams that pierce through up to 4 enemies.'
+      },
+      {
+        id: 'homing',
+        name: 'Seeker Swarm',
+        color: 0x4ade80,
+        hex: '#4ade80',
+        cost: 550,
+        dmgMult: 1.1,
+        rateMult: 1.1,
+        desc: 'Guided emerald missiles that curve toward enemy ships.'
+      },
+      {
+        id: 'tesla',
+        name: 'Tesla Arc',
+        color: 0xfacc15,
+        hex: '#facc15',
+        cost: 700,
+        dmgMult: 1.2,
+        rateMult: 1.05,
+        desc: 'Electric bolts that chain lightning to 2 nearby targets.'
+      }
+    ];
+
+    const MAP_CONFIG = {
+      width: 34,
+      depth: 48,
+      playerZ: 19,
+      spawnZ: -20,
+      maxWeapons: 6,
+      pickupRange: 6.0
+    };
+
+    // ==========================================
+    // 2. THREE.JS 3D SCENE & ARENA SETUP
+    // ==========================================
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x030308, 0.015);
+
+    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
+    camera.position.set(0, 24, 33);
+    camera.lookAt(0, 0, 2);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    document.body.appendChild(renderer.domElement);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    const dirLight = new THREE.DirectionalLight(0xaaccff, 1.1);
+    dirLight.position.set(12, 28, 18);
+    scene.add(dirLight);
+
+    // Arena Grid & Glowing Rails
+    const gridHelper = new THREE.GridHelper(MAP_CONFIG.depth, 24, 0x00f0ff, 0x1a2642);
+    gridHelper.position.y = -0.6;
+    scene.add(gridHelper);
+
+    const railGeo = new THREE.BoxGeometry(0.3, 0.3, MAP_CONFIG.depth);
+    const railMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+    const leftRail = new THREE.Mesh(railGeo, railMat);
+    leftRail.position.set(-MAP_CONFIG.width / 2, -0.4, 0);
+    const rightRail = new THREE.Mesh(railGeo, railMat);
+    rightRail.position.set(MAP_CONFIG.width / 2, -0.4, 0);
+    scene.add(leftRail, rightRail);
+
+    const defenseLine = new THREE.Mesh(
+      new THREE.BoxGeometry(MAP_CONFIG.width, 0.15, 0.25),
+      new THREE.MeshBasicMaterial({ color: 0xff2a55 })
+    );
+    defenseLine.position.set(0, -0.45, MAP_CONFIG.playerZ - 1.5);
+    scene.add(defenseLine);
+
+    // Starfield
+    const starGeo = new THREE.BufferGeometry();
+    const starPos = new Float32Array(700 * 3);
+    for (let i = 0; i < 700 * 3; i += 3) {
+      starPos[i] = (Math.random() - 0.5) * 140;
+      starPos[i + 1] = (Math.random() - 0.5) * 60 - 10;
+      starPos[i + 2] = (Math.random() - 0.5) * 140;
+    }
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    const starField = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.35 }));
+    scene.add(starField);
+
+    // Player 3D Starfighter
+    const playerGroup = new THREE.Group();
+    const hullMat = new THREE.MeshStandardMaterial({ color: 0x00f0ff, emissive: 0x004466, roughness: 0.3 });
+    const hullMesh = new THREE.Mesh(new THREE.ConeGeometry(1.1, 2.8, 6), hullMat);
+    hullMesh.rotation.x = -Math.PI / 2;
+    const wingMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(3.2, 0.25, 1.0),
+      new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.4 })
+    );
+    wingMesh.position.z = 0.4;
+    playerGroup.add(hullMesh, wingMesh);
+    playerGroup.position.set(0, 0, MAP_CONFIG.playerZ);
+    scene.add(playerGroup);
+
+    // ==========================================
+    // 3. GAME STATE & CONTROLS
+    // ==========================================
+    let currentDiff = DIFFICULTIES.veteran;
+    let state = {
+      inMenu: true,
+      wave: 1,
+      waveTime: 50,
+      hp: 105,
+      maxHp: 105,
+      armor: 0,
+      xp: 0,
+      xpNext: 25,
+      level: 1,
+      materials: 0,
+      credits: 0,
+      kills: 0,
+      damage: 15,
+      fireCooldown: 0.35,
+      weapons: 1,
+      speed: 25,
+      fireTimer: 0,
+      paused: false,
+      gameOver: false,
+      enemyDir: 1,
+      unlockedLasers: ['pulse'],
+      equippedLaser: 'pulse'
+    };
+
+    let shopCosts = {};
+    let enemies = [];
+    let playerBullets = [];
+    let enemyBullets = [];
+    let pickups = [];
+    let particles = [];
+    let activeBoss = null;
+
+    const keys = {};
+    window.addEventListener('keydown', e => {
+      keys[e.code] = true;
+      // Number keys 1-6 switch unlocked lasers mid-round
+      if (!state.inMenu && !state.paused && !state.gameOver && e.code.startsWith('Digit')) {
+        const idx = parseInt(e.code.replace('Digit', ''), 10) - 1;
+        if (idx >= 0 && idx < LASERS.length) {
+          const laser = LASERS[idx];
+          if (state.unlockedLasers.includes(laser.id)) {
+            equipLaser(laser.id);
+            showBanner(`EQUIPPED: ${laser.name.toUpperCase()}`, laser.hex, 1100);
+          }
+        }
+      }
+    });
+    window.addEventListener('keyup', e => keys[e.code] = false);
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    function showBanner(text, colorHex = '#ff2a55', duration = 2000) {
+      const banner = document.getElementById('warning-banner');
+      banner.textContent = text;
+      banner.style.color = colorHex;
+      banner.style.textShadow = `0 0 18px ${colorHex}`;
+      banner.style.display = 'block';
+      clearTimeout(banner._timer);
+      banner._timer = setTimeout(() => banner.style.display = 'none', duration);
+    }
+
+    function equipLaser(laserId) {
+      state.equippedLaser = laserId;
+      const laser = LASERS.find(l => l.id === laserId);
+      hullMat.color.setHex(laser.color);
+      hullMat.emissive.setHex(laser.color);
+      hullMat.emissiveIntensity = 0.35;
+      const badge = document.getElementById('active-laser-badge');
+      badge.textContent = `LASER: ${laser.name.toUpperCase()}`;
+      badge.style.borderColor = laser.hex;
+      badge.style.color = laser.hex;
+    }
+
+    // ==========================================
+    // 4. START GAME & WAVE SPAWNING
+    // ==========================================
+    function startGame(diffKey) {
+      currentDiff = DIFFICULTIES[diffKey];
+      state = {
+        inMenu: false,
+        wave: 1,
+        waveTime: currentDiff.waveTime,
+        hp: currentDiff.startHp,
+        maxHp: currentDiff.startHp,
+        armor: 0,
+        xp: 0,
+        xpNext: 25,
+        level: 1,
+        materials: 0,
+        credits: 0,
+        kills: 0,
+        damage: 15,
+        fireCooldown: 0.35,
+        weapons: 1,
+        speed: 25,
+        fireTimer: 0,
+        paused: false,
+        gameOver: false,
+        enemyDir: 1,
+        unlockedLasers: ['pulse'],
+        equippedLaser: 'pulse'
+      };
+
+      shopCosts = {
+        weapon: Math.round(65 * currentDiff.shopMult),
+        damage: Math.round(40 * currentDiff.shopMult),
+        fireRate: Math.round(45 * currentDiff.shopMult),
+        armor: Math.round(50 * currentDiff.shopMult),
+        heal: Math.round(30 * currentDiff.shopMult)
+      };
+
+      equipLaser('pulse');
+      playerGroup.position.x = 0;
+
+      document.getElementById('menu-modal').style.display = 'none';
+      document.getElementById('gameover-modal').style.display = 'none';
+      document.getElementById('hud-left').style.display = 'block';
+      document.getElementById('hud-center').style.display = 'block';
+      document.getElementById('hud-right').style.display = 'block';
+
+      spawnWave(1);
+    }
+
+    function returnToMenu() {
+      state.inMenu = true;
+      document.getElementById('gameover-modal').style.display = 'none';
+      document.getElementById('hud-left').style.display = 'none';
+      document.getElementById('hud-center').style.display = 'none';
+      document.getElementById('hud-right').style.display = 'none';
+      document.getElementById('boss-hud').style.display = 'none';
+      document.getElementById('menu-modal').style.display = 'flex';
+    }
+
+    function spawnWave(waveNum) {
+      enemies.forEach(e => scene.remove(e.mesh));
+      playerBullets.forEach(b => scene.remove(b.mesh));
+      enemyBullets.forEach(b => scene.remove(b.mesh));
+      enemies = [];
+      playerBullets = [];
+      enemyBullets = [];
+      activeBoss = null;
+      document.getElementById('boss-hud').style.display = 'none';
+
+      const isBossWave = waveNum % 3 === 0;
+      state.waveTime = currentDiff.waveTime + (waveNum - 1) * 4 + (isBossWave ? 20 : 0);
+      state.enemyDir = 1;
+
+      const rows = Math.min(5, 3 + Math.floor(waveNum / 2));
+      const cols = Math.min(9, 6 + Math.floor(waveNum / 2));
+      const baseHp = Math.floor(20 * currentDiff.enemyHpMult * Math.pow(1.34, waveNum - 1));
+
+      const spacingX = 3.1;
+      const spacingZ = 2.8;
+      const startX = -((cols - 1) * spacingX) / 2;
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const isHeavy = r === 0 && waveNum >= 2;
+          const maxHp = isHeavy ? Math.floor(baseHp * 2.1) : baseHp;
+          const color = isHeavy ? 0xa855f7 : (r === 1 ? 0xf97316 : 0xff2a55);
+
+          const mesh = new THREE.Mesh(
+            isHeavy ? new THREE.OctahedronGeometry(1.05, 0) : new THREE.BoxGeometry(1.5, 0.9, 1.3),
+            new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.25 })
+          );
+          mesh.position.set(startX + c * spacingX, 0, MAP_CONFIG.spawnZ + r * spacingZ);
+          scene.add(mesh);
+
+          enemies.push({
+            mesh,
+            hp: maxHp,
+            maxHp,
+            isBoss: false,
+            matDrop: isHeavy ? 7 : 4,
+            xpDrop: isHeavy ? 10 : 5
+          });
+        }
+      }
+
+      if (isBossWave) {
+        showBanner('MINI-BOSS INCOMING!', '#d946ef', 2500);
+        const bossHp = baseHp * 15;
+        const bossMesh = new THREE.Mesh(
+          new THREE.DodecahedronGeometry(2.4, 0),
+          new THREE.MeshStandardMaterial({ color: 0xd946ef, emissive: 0x701a75, roughness: 0.2 })
+        );
+        bossMesh.position.set(0, 0.5, MAP_CONFIG.spawnZ - 3.5);
+        scene.add(bossMesh);
+
+        activeBoss = {
+          mesh: bossMesh,
+          hp: bossHp,
+          maxHp: bossHp,
+          isBoss: true,
+          matDrop: 50,
+          xpDrop: 55
+        };
+        enemies.push(activeBoss);
+        document.getElementById('boss-hud').style.display = 'block';
+        document.getElementById('boss-bar').style.width = '100%';
+      }
+
+      updateHUD();
+    }
+
+    // ==========================================
+    // 5. WEAPON FIRING & COMBAT MECHANICS
+    // ==========================================
+    function fireEquippedLaser() {
+      const laser = LASERS.find(l => l.id === state.equippedLaser);
+      const spread = 0.68;
+      const totalW = (state.weapons - 1) * spread;
+      const startX = playerGroup.position.x - totalW / 2;
+      const dmg = Math.round(state.damage * laser.dmgMult);
+
+      for (let i = 0; i < state.weapons; i++) {
+        const bx = startX + i * spread;
+        const bz = playerGroup.position.z - 1.4;
+
+        if (laser.id === 'scatter') {
+          [-0.22, 0, 0.22].forEach(angle => {
+            createProjectile(bx, bz, Math.sin(angle) * 38, -Math.cos(angle) * 38, dmg, laser.color, 'scatter', 0.22);
+          });
+        } else if (laser.id === 'plasma') {
+          createProjectile(bx, bz, 0, -30, dmg, laser.color, 'plasma', 0.45);
+        } else if (laser.id === 'railgun') {
+          createProjectile(bx, bz, 0, -58, dmg, laser.color, 'railgun', 0.22, 4);
+        } else if (laser.id === 'homing') {
+          createProjectile(bx, bz, 0, -32, dmg, laser.color, 'homing', 0.28);
+        } else if (laser.id === 'tesla') {
+          createProjectile(bx, bz, 0, -44, dmg, laser.color, 'tesla', 0.24);
+        } else {
+          createProjectile(bx, bz, 0, -42, dmg, laser.color, 'pulse', 0.2);
+        }
+      }
+    }
+
+    function createProjectile(x, z, vx, vz, dmg, color, type, size, pierce = 1) {
+      const geo = type === 'plasma'
+        ? new THREE.SphereGeometry(size, 8, 8)
+        : new THREE.BoxGeometry(size, size, type === 'railgun' ? 2.2 : 1.1);
+      const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color }));
+      mesh.position.set(x, 0, z);
+      scene.add(mesh);
+      playerBullets.push({ mesh, vx, vz, dmg, type, pierce, hitList: [] });
+    }
+
+    function spawnExplosion(pos, color, count = 8) {
+      for (let i = 0; i < count; i++) {
+        const pMesh = new THREE.Mesh(
+          new THREE.BoxGeometry(0.25, 0.25, 0.25),
+          new THREE.MeshBasicMaterial({ color })
+        );
+        pMesh.position.copy(pos);
+        scene.add(pMesh);
+        particles.push({
+          mesh: pMesh,
+          vel: new THREE.Vector3((Math.random() - 0.5) * 12, Math.random() * 6, (Math.random() - 0.5) * 12),
+          life: 0.42
+        });
+      }
+    }
+
+    function spawnPickup(pos, matVal, xpVal) {
+      const pMesh = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.45, 0),
+        new THREE.MeshBasicMaterial({ color: 0xffd700 })
+      );
+      pMesh.position.copy(pos);
+      scene.add(pMesh);
+      pickups.push({ mesh: pMesh, matVal, xpVal });
+    }
+
+    function damageEnemy(enemyIndex, dmg, bulletType) {
+      const e = enemies[enemyIndex];
+      if (!e) return;
+      e.hp -= dmg;
+      if (e.hp <= 0) {
+        spawnExplosion(e.mesh.position, e.isBoss ? 0xd946ef : 0xff2a55, e.isBoss ? 25 : 10);
+        spawnPickup(e.mesh.position, e.matDrop, e.xpDrop);
+        if (e.isBoss) {
+          activeBoss = null;
+          document.getElementById('boss-hud').style.display = 'none';
+        }
+        scene.remove(e.mesh);
+        enemies.splice(enemyIndex, 1);
+        state.kills++;
+      }
+    }
+
+    function damagePlayer(rawDmg) {
+      const mitigated = Math.max(2, rawDmg - state.armor);
+      state.hp = Math.max(0, state.hp - mitigated);
+      spawnExplosion(playerGroup.position, 0xff2a55, 10);
+      updateHUD();
+      if (state.hp <= 0) triggerGameOver();
+    }
+
+    function gainXP(amount) {
+      state.xp += amount;
+      if (state.xp >= state.xpNext) {
+        state.xp -= state.xpNext;
+        state.level++;
+        state.xpNext = Math.floor(state.xpNext * 1.35);
+        openLevelUpModal();
+      }
+    }
+
+    // ==========================================
+    // 6. LEVEL-UP & LASER ARMORY SHOP MODALS
+    // ==========================================
+    function openLevelUpModal() {
+      state.paused = true;
+      const modal = document.getElementById('levelup-modal');
+      const container = document.getElementById('levelup-options');
+      container.innerHTML = '';
+
+      const choices = [
+        { title: '+8 Max HP & Heal', desc: 'Reinforce ship hull integrity', apply: () => { state.maxHp += 8; state.hp = Math.min(state.maxHp, state.hp + 15); } },
+        { title: '+3 Base Damage', desc: 'Increases damage for all lasers', apply: () => { state.damage += 3; } },
+        { title: '+7% Fire Rate', desc: 'Faster weapon cycling', apply: () => { state.fireCooldown = Math.max(0.08, state.fireCooldown * 0.93); } },
+        { title: '+1 Armor Plating', desc: 'Reduce incoming hit damage', apply: () => { state.armor += 1; } }
+      ];
+
+      choices.forEach(c => {
+        const btn = document.createElement('button');
+        btn.className = 'upgrade-card';
+        btn.innerHTML = `<div class="card-title">${c.title}</div><div class="card-desc">${c.desc}</div>`;
+        btn.onclick = () => {
+          c.apply();
+          modal.style.display = 'none';
+          state.paused = false;
+          updateHUD();
+        };
+        container.appendChild(btn);
+      });
+
+      modal.style.display = 'flex';
+    }
+
+    function openShopModal() {
+      state.paused = true;
+
+      // Award Star Credits after surviving the round
+      const baseReward = 90 + (state.wave * 35) + (state.wave % 3 === 0 ? 120 : 0);
+      const earnedCredits = Math.round(baseReward * currentDiff.creditMult);
+      state.credits += earnedCredits;
+      updateHUD();
+
+      document.getElementById('round-reward-banner').textContent = `Round ${state.wave} Bonus: +${earnedCredits} Star Credits!`;
+      document.getElementById('next-wave-btn').textContent = `START WAVE ${state.wave + 1}`;
+      renderShopCards();
+      document.getElementById('shop-modal').style.display = 'flex';
+    }
+
+    function renderShopCards() {
+      document.getElementById('shop-cred-text').textContent = `Star Credits: ${state.credits} CR`;
+      document.getElementById('shop-mat-text').textContent = `Materials: ${state.materials}`;
+
+      // 1. Render Laser Armory Cards (Star Credits)
+      const laserContainer = document.getElementById('laser-shop-options');
+      laserContainer.innerHTML = '';
+
+      LASERS.forEach((laser, idx) => {
+        const isUnlocked = state.unlockedLasers.includes(laser.id);
+        const isEquipped = state.equippedLaser === laser.id;
+        const canAfford = state.credits >= laser.cost;
+
+        const btn = document.createElement('button');
+        btn.className = 'upgrade-card' + (isEquipped ? ' equipped' : '');
+        btn.disabled = !isUnlocked && !canAfford;
+
+        let statusHtml = '';
+        if (isEquipped) {
+          statusHtml = `<div class="card-cost owned">EQUIPPED [Key ${idx + 1}]</div>`;
+        } else if (isUnlocked) {
+          statusHtml = `<div class="card-cost owned">OWNED &mdash; CLICK TO EQUIP</div>`;
+        } else {
+          statusHtml = `<div class="card-cost cred">${laser.cost} Star Credits</div>`;
+        }
+
+        btn.innerHTML = `
+          <div>
+            <div class="card-title" style="color:${laser.hex}">${laser.name}</div>
+            <div class="card-desc">${laser.desc}</div>
+          </div>
+          ${statusHtml}
+        `;
+
+        btn.onclick = () => {
+          if (!isUnlocked && canAfford) {
+            state.credits -= laser.cost;
+            state.unlockedLasers.push(laser.id);
+            equipLaser(laser.id);
+          } else if (isUnlocked) {
+            equipLaser(laser.id);
+          }
+          updateHUD();
+          renderShopCards();
+        };
+        laserContainer.appendChild(btn);
+      });
+
+      // 2. Render Ship Stat Cards (Salvaged Materials)
+      const statContainer = document.getElementById('stat-shop-options');
+      statContainer.innerHTML = '';
+
+      const statItems = [
+        {
+          title: `Extra Barrel (${state.weapons}/${MAP_CONFIG.maxWeapons})`,
+          desc: 'Add +1 parallel laser barrel',
+          cost: shopCosts.weapon,
+          disabled: state.weapons >= MAP_CONFIG.maxWeapons || state.materials < shopCosts.weapon,
+          maxed: state.weapons >= MAP_CONFIG.maxWeapons,
+          buy: () => {
+            state.materials -= shopCosts.weapon;
+            state.weapons++;
+            shopCosts.weapon = Math.floor(shopCosts.weapon * 2.1);
+          }
+        },
+        {
+          title: 'Heavy Coils (+6 DMG)',
+          desc: 'Boosts damage for every laser',
+          cost: shopCosts.damage,
+          disabled: state.materials < shopCosts.damage,
+          buy: () => {
+            state.materials -= shopCosts.damage;
+            state.damage += 6;
+            shopCosts.damage = Math.floor(shopCosts.damage * 1.65);
+          }
+        },
+        {
+          title: 'Overclock (+12% Speed)',
+          desc: 'Faster firing cooldown',
+          cost: shopCosts.fireRate,
+          disabled: state.materials < shopCosts.fireRate,
+          buy: () => {
+            state.materials -= shopCosts.fireRate;
+            state.fireCooldown = Math.max(0.08, state.fireCooldown * 0.88);
+            shopCosts.fireRate = Math.floor(shopCosts.fireRate * 1.75);
+          }
+        },
+        {
+          title: 'Titanium Plating (+2 Armor)',
+          desc: 'Flat damage reduction per hit',
+          cost: shopCosts.armor,
+          disabled: state.materials < shopCosts.armor,
+          buy: () => {
+            state.materials -= shopCosts.armor;
+            state.armor += 2;
+            shopCosts.armor = Math.floor(shopCosts.armor * 1.8);
+          }
+        },
+        {
+          title: 'Hull Nanobots (+35 HP)',
+          desc: 'Repair damaged ship hull',
+          cost: shopCosts.heal,
+          disabled: state.materials < shopCosts.heal || state.hp >= state.maxHp,
+          buy: () => {
+            state.materials -= shopCosts.heal;
+            state.hp = Math.min(state.maxHp, state.hp + 35);
+            shopCosts.heal = Math.floor(shopCosts.heal * 1.4);
+          }
+        }
+      ];
+
+      statItems.forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'upgrade-card';
+        btn.disabled = item.disabled;
+        btn.innerHTML = `
+          <div>
+            <div class="card-title">${item.title}</div>
+            <div class="card-desc">${item.desc}</div>
+          </div>
+          <div class="card-cost">${item.maxed ? 'MAXED' : item.cost + ' Materials'}</div>
+        `;
+        btn.onclick = () => {
+          item.buy();
+          updateHUD();
+          renderShopCards();
+        };
+        statContainer.appendChild(btn);
+      });
+    }
+
+    document.getElementById('next-wave-btn').onclick = () => {
+      document.getElementById('shop-modal').style.display = 'none';
+      state.wave++;
+      state.paused = false;
+      spawnWave(state.wave);
+    };
+
+    function triggerGameOver() {
+      state.gameOver = true;
+      document.getElementById('gameover-stats').textContent =
+        `${currentDiff.label} Mode | Survived to Wave ${state.wave} | Kills: ${state.kills}`;
+      document.getElementById('gameover-modal').style.display = 'flex';
+    }
+
+    function updateHUD() {
+      document.getElementById('hp-text').textContent = `HP: ${state.hp}/${state.maxHp} | Armor: ${state.armor}`;
+      document.getElementById('hp-bar').style.width = `${(state.hp / state.maxHp) * 100}%`;
+      document.getElementById('xp-text').textContent = `LEVEL ${state.level} (${state.xp}/${state.xpNext} XP)`;
+      document.getElementById('xp-bar').style.width = `${(state.xp / state.xpNext) * 100}%`;
+      document.getElementById('mat-text').textContent = `Materials: ${state.materials}`;
+      document.getElementById('cred-text').textContent = `Credits: ${state.credits} CR`;
+      document.getElementById('wave-title').textContent = `${currentDiff.label} WAVE ${state.wave}`;
+      document.getElementById('wave-timer').textContent = Math.ceil(state.waveTime);
+      document.getElementById('weapons-text').textContent = `${state.weapons}/${MAP_CONFIG.maxWeapons}`;
+      document.getElementById('alive-text').textContent = enemies.length;
+      document.getElementById('kills-text').textContent = state.kills;
+
+      if (activeBoss && activeBoss.hp > 0) {
+        document.getElementById('boss-bar').style.width = `${(activeBoss.hp / activeBoss.maxHp) * 100}%`;
+      }
+    }
+
+    // ==========================================
+    // 7. MAIN 60FPS GAME LOOP
+    // ==========================================
+    let lastTime = performance.now();
+
+    function animate(now) {
+      requestAnimationFrame(animate);
+      const dt = Math.min(0.05, (now - lastTime) / 1000);
+      lastTime = now;
+
+      starField.rotation.y += dt * 0.02;
+
+      if (state.inMenu || state.paused || state.gameOver) {
+        renderer.render(scene, camera);
+        return;
+      }
+
+      // Wave Countdown
+      state.waveTime -= dt;
+      if (state.waveTime <= 0 && enemies.length > 0) {
+        damagePlayer(999);
+      }
+
+      // Player Movement
+      const halfBound = MAP_CONFIG.width / 2 - 1.8;
+      if ((keys['ArrowLeft'] || keys['KeyA']) && playerGroup.position.x > -halfBound) {
+        playerGroup.position.x -= state.speed * dt;
+        playerGroup.rotation.z = 0.22;
+      } else if ((keys['ArrowRight'] || keys['KeyD']) && playerGroup.position.x < halfBound) {
+        playerGroup.position.x += state.speed * dt;
+        playerGroup.rotation.z = -0.22;
+      } else {
+        playerGroup.rotation.z *= 0.85;
+      }
+
+      // Auto-Fire Equipped Laser
+      const activeLaser = LASERS.find(l => l.id === state.equippedLaser);
+      state.fireTimer -= dt;
+      if (state.fireTimer <= 0 && enemies.length > 0) {
+        state.fireTimer = state.fireCooldown * activeLaser.rateMult;
+        fireEquippedLaser();
+      }
+
+      // Update Player Projectiles
+      for (let i = playerBullets.length - 1; i >= 0; i--) {
+        const b = playerBullets[i];
+
+        // Homing missile tracking
+        if (b.type === 'homing' && enemies.length > 0) {
+          let nearest = enemies[0];
+          let bestDist = Infinity;
+          enemies.forEach(e => {
+            const d = b.mesh.position.distanceTo(e.mesh.position);
+            if (d < bestDist) { bestDist = d; nearest = e; }
+          });
+          const desiredX = nearest.mesh.position.x - b.mesh.position.x;
+          b.vx += Math.sign(desiredX) * 55 * dt;
+          b.vx = Math.max(-22, Math.min(22, b.vx));
+        }
+
+        b.mesh.position.x += b.vx * dt;
+        b.mesh.position.z += b.vz * dt;
+
+        if (b.mesh.position.z < -MAP_CONFIG.depth / 2 - 4 || Math.abs(b.mesh.position.x) > MAP_CONFIG.width / 2 + 2) {
+          scene.remove(b.mesh);
+          playerBullets.splice(i, 1);
+          continue;
+        }
+
+        // Check Enemy Hit
+        for (let j = enemies.length - 1; j >= 0; j--) {
+          const e = enemies[j];
+          if (b.hitList.includes(e)) continue;
+
+          const hitRadius = e.isBoss ? 2.5 : 1.15;
+          if (b.mesh.position.distanceTo(e.mesh.position) < hitRadius) {
+            b.hitList.push(e);
+            const hitPos = e.mesh.position.clone();
+
+            // Special Weapon On-Hit Effects
+            if (b.type === 'plasma') {
+              spawnExplosion(hitPos, 0xf97316, 12);
+              for (let k = enemies.length - 1; k >= 0; k--) {
+                if (enemies[k].mesh.position.distanceTo(hitPos) < 4.2) {
+                  damageEnemy(k, Math.round(b.dmg * 0.75), 'plasma');
+                }
+              }
+            } else if (b.type === 'tesla') {
+              spawnExplosion(hitPos, 0xfacc15, 6);
+              damageEnemy(j, b.dmg, 'tesla');
+              let chained = 0;
+              for (let k = enemies.length - 1; k >= 0 && chained < 2; k--) {
+                if (enemies[k] && enemies[k].mesh.position.distanceTo(hitPos) < 5.0) {
+                  spawnExplosion(enemies[k].mesh.position, 0xfacc15, 4);
+                  damageEnemy(k, Math.round(b.dmg * 0.65), 'tesla');
+                  chained++;
+                }
+              }
+            } else {
+              spawnExplosion(b.mesh.position, activeLaser.color, 3);
+              damageEnemy(j, b.dmg, b.type);
+            }
+
+            b.pierce--;
+            if (b.pierce <= 0) {
+              scene.remove(b.mesh);
+              playerBullets.splice(i, 1);
+            }
+            break;
+          }
+        }
+      }
+
+      // Update Enemies
+      const enemySpeed = currentDiff.enemySpeed + (state.wave * 0.22);
+      let hitWall = false;
+
+      enemies.forEach(e => {
+        e.mesh.position.x += state.enemyDir * enemySpeed * dt;
+        e.mesh.rotation.y += dt * 1.5;
+
+        if (Math.abs(e.mesh.position.x) > halfBound) hitWall = true;
+
+        // Capped Enemy Return Fire
+        const fireRate = currentDiff.fireRate * (e.isBoss ? 3.2 : 1);
+        if (enemyBullets.length < currentDiff.maxBullets && Math.random() < fireRate * dt) {
+          const ebMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(e.isBoss ? 0.45 : 0.28, 8, 8),
+            new THREE.MeshBasicMaterial({ color: e.isBoss ? 0xd946ef : 0xff3b5c })
+          );
+          ebMesh.position.copy(e.mesh.position);
+          scene.add(ebMesh);
+          enemyBullets.push({
+            mesh: ebMesh,
+            dmg: 11 + state.wave * 2,
+            speed: 13.5 + state.wave * 0.55
+          });
+        }
+      });
+
+      if (hitWall) {
+        state.enemyDir *= -1;
+        enemies.forEach(e => {
+          e.mesh.position.z += 1.25;
+          if (e.mesh.position.z >= MAP_CONFIG.playerZ - 1.5) {
+            damagePlayer(999);
+          }
+        });
+      }
+
+      // Update Enemy Bullets
+      for (let i = enemyBullets.length - 1; i >= 0; i--) {
+        const eb = enemyBullets[i];
+        eb.mesh.position.z += eb.speed * dt;
+
+        if (eb.mesh.position.distanceTo(playerGroup.position) < 1.3) {
+          damagePlayer(eb.dmg);
+          scene.remove(eb.mesh);
+          enemyBullets.splice(i, 1);
+          continue;
+        }
+
+        if (eb.mesh.position.z > MAP_CONFIG.depth / 2 + 4) {
+          scene.remove(eb.mesh);
+          enemyBullets.splice(i, 1);
+        }
+      }
+
+      // Update Material Pickups
+      for (let i = pickups.length - 1; i >= 0; i--) {
+        const p = pickups[i];
+        p.mesh.rotation.y += dt * 3;
+        p.mesh.position.z += 6.5 * dt;
+
+        const dist = p.mesh.position.distanceTo(playerGroup.position);
+        if (dist < MAP_CONFIG.pickupRange) {
+          p.mesh.position.lerp(playerGroup.position, dt * 8);
+        }
+
+        if (dist < 1.5) {
+          state.materials += p.matVal;
+          gainXP(p.xpVal);
+          scene.remove(p.mesh);
+          pickups.splice(i, 1);
+          continue;
+        }
+
+        if (p.mesh.position.z > MAP_CONFIG.depth / 2 + 4) {
+          scene.remove(p.mesh);
+          pickups.splice(i, 1);
+        }
+      }
+
+      // Update Explosion Particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const pt = particles[i];
+        pt.mesh.position.addScaledVector(pt.vel, dt);
+        pt.life -= dt;
+        pt.mesh.scale.setScalar(Math.max(0.01, pt.life * 2));
+        if (pt.life <= 0) {
+          scene.remove(pt.mesh);
+          particles.splice(i, 1);
+        }
+      }
+
+      updateHUD();
+
+      // Round Cleared -> Open Laser Armory & Upgrades
+      if (enemies.length === 0 && !state.gameOver) {
+        openShopModal();
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
